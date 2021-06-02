@@ -1,4 +1,5 @@
-import 'package:architecture/architecture/mvc/user_model.dart';
+import 'package:architecture/architecture/mvc/login_controller.dart';
+import 'package:architecture/architecture/mvc/login_repository.dart';
 import 'package:architecture/page/home/home_page.dart';
 import 'package:flutter/material.dart';
 
@@ -9,16 +10,19 @@ class LoginPageMVC extends StatefulWidget {
 
 class _LoginPageMVCState extends State<LoginPageMVC> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
-  final _formKey = GlobalKey<FormState>();
-  UserModel model = UserModel();
+  LoginController? controller;
+  bool isLoading = false;
 
   @override
-  void initState() => super.initState();
+  void initState() {
+    super.initState();
+    controller = LoginController(LoginRepository());
+  }
 
   @override
   void dispose() => super.dispose();
 
-  _loginSuccess(String? namelogin) async {
+  loginSuccess(String? namelogin) async {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Logado como $namelogin'),
       backgroundColor: Colors.green,
@@ -35,7 +39,7 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Form(
-          key: _formKey,
+          key: controller!.formKey,
           child: Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -46,7 +50,7 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
                           border: OutlineInputBorder(), labelText: 'e-mail'),
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.emailAddress,
-                      onSaved: (value) => model.email = value,
+                      onSaved: controller!.userEmail,
                       validator: (String? value) {
                         if (value!.isEmpty) return 'camponão pode ser vazio';
                         if (!value.contains('@')) {
@@ -61,7 +65,7 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
                       textInputAction: TextInputAction.go,
                       keyboardType: TextInputType.name,
                       obscureText: true,
-                      onSaved: (value) => model.password = value,
+                      onSaved: controller!.userPassword,
                       validator: (String? value) {
                         if (value!.isEmpty) return 'camponão pode ser vazio';
                         return null;
@@ -73,18 +77,17 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
                             EdgeInsets.symmetric(horizontal: 80)),
                         backgroundColor:
                             MaterialStateProperty.all<Color>(Colors.green)),
-                    onPressed: () async {
-                      if (!_formKey.currentState!.validate()) {
-                        return;
-                      } else {
-                        _formKey.currentState!.save();
-                      }
-                      if (await model.mathLogin()) {
-                        return _loginSuccess(model.email);
-                      } else {
-                        return _loginError();
-                      }
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            setState(() => isLoading = true);
+                            if (await controller!.singIn()) {
+                              loginSuccess(controller!.user.email);
+                            } else {
+                              _loginError();
+                            }
+                            setState(() => isLoading = false);
+                          },
                     child: const Text('Entrar'),
                   )
                 ],
