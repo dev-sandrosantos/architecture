@@ -1,45 +1,53 @@
-import 'package:architecture/architecture/mvc/login_controller.dart';
-import 'package:architecture/architecture/mvc/login_repository.dart';
+import 'package:architecture/architecture/mvp/login_presenter.dart';
+import 'package:architecture/architecture/mvp/login_repository.dart';
 import 'package:architecture/page/home/home_page.dart';
 import 'package:flutter/material.dart';
 
-class LoginPageMVC extends StatefulWidget {
+class LoginPageMVP extends StatefulWidget {
   @override
-  _LoginPageMVCState createState() => _LoginPageMVCState();
+  _LoginPageMVPState createState() => _LoginPageMVPState();
 }
 
-class _LoginPageMVCState extends State<LoginPageMVC> {
+class _LoginPageMVPState extends State<LoginPageMVP>
+    implements LoginPageContract {
   final scaffoldKey = GlobalKey<ScaffoldState>();
-  LoginController? controller;
-  bool isLoading = false;
+  LoginPresenter? presenter;
 
   @override
   void initState() {
     super.initState();
-    controller = LoginController(LoginRepository());
+    presenter = LoginPresenter(this, repository: LoginRepository());
   }
 
   @override
   void dispose() => super.dispose();
 
+  @override
   loginSuccess(String? namelogin) async {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Logado como $namelogin'),
       backgroundColor: Colors.green,
     ));
     await Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => MyHome("MVC")));
+        context, MaterialPageRoute(builder: (context) => MyHome("MVP")));
   }
 
-  _loginError() => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  @override
+  loginError() => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text("erro"),
         backgroundColor: Colors.red,
       ));
+
+  @override
+  void isLodingManager() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Form(
-          key: controller!.formKey,
+          key: presenter!.formKey,
           child: Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -50,7 +58,7 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
                           border: OutlineInputBorder(), labelText: 'e-mail'),
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.emailAddress,
-                      onSaved: controller!.userEmail,
+                      onSaved: presenter!.userEmail,
                       validator: (String? value) {
                         if (value!.isEmpty) return 'camponão pode ser vazio';
                         if (!value.contains('@')) {
@@ -65,7 +73,7 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
                       textInputAction: TextInputAction.go,
                       keyboardType: TextInputType.name,
                       obscureText: true,
-                      onSaved: controller!.userPassword,
+                      onSaved: presenter!.userPassword,
                       validator: (String? value) {
                         if (value!.isEmpty) return 'camponão pode ser vazio';
                         return null;
@@ -77,17 +85,7 @@ class _LoginPageMVCState extends State<LoginPageMVC> {
                             EdgeInsets.symmetric(horizontal: 80)),
                         backgroundColor:
                             MaterialStateProperty.all<Color>(Colors.green)),
-                    onPressed: isLoading
-                        ? null
-                        : () async {
-                            setState(() => isLoading = true);
-                            if (await controller!.singIn()) {
-                              loginSuccess(controller!.user.email);
-                            } else {
-                              _loginError();
-                            }
-                            setState(() => isLoading = false);
-                          },
+                    onPressed: presenter!.isLoading ? null : presenter!.singIn,
                     child: const Text('Entrar'),
                   )
                 ],
